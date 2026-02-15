@@ -5,27 +5,27 @@ import (
 )
 
 type Task struct {
-	Index       int
-	Description string
-	Completed   bool
-	Deadline    string
-	Title       string
+	Index       int    `json:"index"`
+	Description string `json:"description"`
+	Completed   bool   `json:"completed"`
+	Deadline    string `json:"deadline"`
+	Title       string `json:"title"`
 }
 
 type App struct {
-	Tasks    []Task
+	Tasks    map[int]Task
 	maxIndex int
 }
 
 func NewApp() *App {
 	return &App{
-		Tasks:    []Task{},
+		Tasks:    make(map[int]Task),
 		maxIndex: 0,
 	}
 }
 
 func (a *App) AddTask(task Task) bool {
-	a.Tasks = append(a.Tasks, task)
+	a.Tasks[task.Index] = task
 	return true
 }
 
@@ -38,7 +38,7 @@ func (a *App) AddTaskByDescription(title string, description string, deadline st
 		Index:       a.maxIndex + 1,
 	}
 	a.maxIndex++
-	a.Tasks = append(a.Tasks, task)
+	a.Tasks[task.Index] = task
 	return true
 }
 
@@ -63,27 +63,48 @@ func (a *App) ListTasks(showAll, showCompleted bool) {
 	}
 }
 
+func (a *App) GetAllTasks() []Task {
+	tasks := make([]Task, 0, len(a.Tasks))
+	for _, task := range a.Tasks {
+		tasks = append(tasks, task)
+	}
+	return tasks
+}
+
+func (a *App) DeleteTask(index int) bool {
+	if index <= 0 || index >= a.maxIndex {
+		return false
+	}
+
+	if _, exists := a.Tasks[index]; exists {
+		delete(a.Tasks, index)
+		return true
+	}
+
+	return false
+}
+
 func (a *App) MarkTaskAsCompleted(index int) bool {
 	if index <= 0 || index > a.maxIndex {
 		return false
 	}
 
-	task := a.findTaskByIndex(index)
-	if task != nil {
+	if task, exists := a.Tasks[index]; exists {
 		task.Completed = true
+		a.Tasks[index] = task
+		return true
 	}
-
-	return true
+	return false
 }
 
 func (a *App) UpdateTask(index int, title, description string) bool {
 	if index <= 0 || index > a.maxIndex {
 		return false
 	}
-	task := a.findTaskByIndex(index)
-	if task != nil {
+	if task, exists := a.Tasks[index]; exists {
 		task.Title = title
 		task.Description = description
+		a.Tasks[index] = task
 		return true
 	}
 	return false
@@ -94,29 +115,16 @@ func (a *App) RemoveTaskByIndex(index int) bool {
 		return false
 	}
 
-	taskIndex := a.findTaskIndexInArray(index)
-
-	if taskIndex != -1 {
-		a.Tasks = append(a.Tasks[:taskIndex-1], a.Tasks[taskIndex+1:]...)
+	if _, exists := a.Tasks[index]; exists {
+		delete(a.Tasks, index)
+		return true
 	}
-
-	return true
-}
-
-func (a *App) findTaskIndexInArray(index int) int {
-	for ind, task := range a.Tasks {
-		if task.Index == index {
-			return ind
-		}
-	}
-	return -1
+	return false
 }
 
 func (a *App) findTaskByIndex(index int) *Task {
-	for i := range a.Tasks {
-		if a.Tasks[i].Index == index {
-			return &a.Tasks[i]
-		}
+	if task, exists := a.Tasks[index]; exists {
+		return &task
 	}
 	return nil
 }
