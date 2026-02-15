@@ -13,12 +13,14 @@ type Task struct {
 }
 
 type App struct {
-	Tasks []Task
+	Tasks    []Task
+	maxIndex int
 }
 
 func NewApp() *App {
 	return &App{
-		Tasks: []Task{},
+		Tasks:    []Task{},
+		maxIndex: 0,
 	}
 }
 
@@ -33,8 +35,9 @@ func (a *App) AddTaskByDescription(title string, description string, deadline st
 		Description: description,
 		Deadline:    deadline,
 		Completed:   false,
-		Index:       len(a.Tasks) + 1,
+		Index:       a.maxIndex + 1,
 	}
+	a.maxIndex++
 	a.Tasks = append(a.Tasks, task)
 	return true
 }
@@ -61,13 +64,59 @@ func (a *App) ListTasks(showAll, showCompleted bool) {
 }
 
 func (a *App) MarkTaskAsCompleted(index int) bool {
-	if index < 0 || index >= len(a.Tasks) {
+	if index <= 0 || index > a.maxIndex {
 		return false
 	}
 
-	task := &a.Tasks[index-1]
-
-	task.Completed = true
+	task := a.findTaskByIndex(index)
+	if task != nil {
+		task.Completed = true
+	}
 
 	return true
+}
+
+func (a *App) UpdateTask(index int, title, description string) bool {
+	if index <= 0 || index > a.maxIndex {
+		return false
+	}
+	task := a.findTaskByIndex(index)
+	if task != nil {
+		task.Title = title
+		task.Description = description
+		return true
+	}
+	return false
+}
+
+func (a *App) RemoveTaskByIndex(index int) bool {
+	if index <= 0 || index > a.maxIndex {
+		return false
+	}
+
+	taskIndex := a.findTaskIndexInArray(index)
+
+	if taskIndex != -1 {
+		a.Tasks = append(a.Tasks[:taskIndex-1], a.Tasks[taskIndex+1:]...)
+	}
+
+	return true
+}
+
+func (a *App) findTaskIndexInArray(index int) int {
+	for ind, task := range a.Tasks {
+		if task.Index == index {
+			return ind
+		}
+	}
+	return -1
+}
+
+func (a *App) findTaskByIndex(index int) *Task {
+	for i := range a.Tasks {
+		if a.Tasks[i].Index == index {
+			return &a.Tasks[i]
+		}
+	}
+	return nil
 }
